@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'js-yaml';
@@ -13,6 +14,7 @@ import { error } from 'console';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors()); 
 app.use(express.json());
 if (process.env !== 'test') app.use(morgan('tiny'));
 
