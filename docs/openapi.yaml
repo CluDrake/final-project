@@ -6,8 +6,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:3000
   - url: https://library-api-kbdr.onrender.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Local server
 
 components:
   securitySchemes:
@@ -15,6 +17,188 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: Resource ID
+      schema:
+        type: integer
+        example: 1
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john@example.com
+        role:
+          type: string
+          example: member
+
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        title:
+          type: string
+          example: The Great Gatsby
+        author:
+          type: string
+          example: F. Scott Fitzgerald
+        isbn:
+          type: string
+          example: 978-0-7432-7356-5
+        isAvailable:
+          type: boolean
+          example: true
+        categoryId:
+          type: integer
+          example: 1
+        category:
+          type: string
+          example: Fiction
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        name:
+          type: string
+          example: Fiction
+
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        userId:
+          type: integer
+          example: 1
+        bookId:
+          type: integer
+          example: 1
+        loanDate:
+          type: string
+          format: date-time
+          example: 2025-01-10T00:00:00.000Z
+        returnDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    LoginCredentials:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          example: admin@library.com
+        password:
+          type: string
+          example: Password123!
+
+    SignupCredentials:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john@example.com
+        password:
+          type: string
+          example: Password123!
+        role:
+          type: string
+          example: member
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authorization token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+          example:
+            error: Not Authenticated, Please provide a valid token or login to get a token
+
+    Forbidden:
+      description: You do not have permission to access this resource
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+          example:
+            error: Forbidden You do not have permission to access this resource
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+          example:
+            error: Resource not found
+
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+          example:
+            error: Resource already exists
+
+    BadRequest:
+      description: Bad request due to invalid or missing data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+          example:
+            error: Missing required fields
 
 paths:
   /api/auth/signup:
@@ -27,28 +211,19 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - name
-                - email
-                - password
-              properties:
-                name:
-                  type: string
-                  example: Mark Smitherson
-                email:
-                  type: string
-                  example: MSmith@hotmail.com
-                password:
-                  type: string
-                  example: Password123!
+              $ref: '#/components/schemas/SignupCredentials'
       responses:
         '201':
           description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
-          description: Name, email, and password are required
+          $ref: '#/components/responses/BadRequest'
         '409':
-          description: Email already in use
+          $ref: '#/components/responses/Conflict'
+
   /api/auth/login:
     post:
       summary: Authenticate a user and return a JWT
@@ -59,17 +234,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - email
-                - password
-              properties:
-                email:
-                  type: string
-                  example: MSmith@hotmail.com
-                password:
-                  type: string
-                  example: Password123!
+              $ref: '#/components/schemas/LoginCredentials'
       responses:
         '200':
           description: Login successful, returns JWT
@@ -81,22 +246,32 @@ paths:
                   accessToken:
                     type: string
                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Invalid credentials
+          $ref: '#/components/responses/Unauthorized'
+
   /api/users:
     get:
-      summary: Get a list of all users
+      summary: Get all users
       tags:
         - Users
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: A list of users
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only admins can access
+          $ref: '#/components/responses/Forbidden'
+
   /api/users/{id}:
     get:
       summary: Get a user by ID
@@ -105,21 +280,21 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '200':
-          description: User details
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only owners or admins can access 
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: User not found
+          $ref: '#/components/responses/NotFound'
+
     put:
       summary: Update a user by ID
       tags:
@@ -127,12 +302,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       requestBody:
         required: true
         content:
@@ -145,22 +315,26 @@ paths:
                   example: Updated Name
                 email:
                   type: string
-                  example: Updated Email
+                  example: updated@example.com
                 password:
                   type: string
-                  example: Updated Password
-                role:
-                  type: string
-                  example: Updated Role
+                  example: NewPassword123!
       responses:
         '200':
           description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only owners or admins can access 
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: User not found
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
     delete:
       summary: Delete a user by ID
       tags:
@@ -168,33 +342,36 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
-        '200':
+        '204':
           description: User deleted successfully
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access 
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: User not found
+          $ref: '#/components/responses/NotFound'
+
   /api/books:
     get:
-      summary: Get a list of all books
+      summary: Get all books
       tags:
         - Books
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: A list of books
+          description: List of all books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
+
     post:
       summary: Add a new book
       tags:
@@ -215,25 +392,30 @@ paths:
               properties:
                 title:
                   type: string
-                  example: The Great Gatsby
+                  example: 1984
                 author:
                   type: string
-                  example: F. Scott Fitzgerald
+                  example: George Orwell
                 isbn:
                   type: string
-                  example: 978-0743273565
+                  example: 978-0-452-28423-4
                 categoryId:
                   type: integer
                   example: 1
       responses:
         '201':
-          description: Book added successfully
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
         '409':
-          description: ISBN already exists
+          $ref: '#/components/responses/Conflict'
+
   /api/books/{id}:
     get:
       summary: Get a book by ID
@@ -242,19 +424,19 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '200':
-          description: Book details
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Book not found
+          $ref: '#/components/responses/NotFound'
+
     put:
       summary: Update a book by ID
       tags:
@@ -262,12 +444,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       requestBody:
         required: true
         content:
@@ -283,19 +460,26 @@ paths:
                   example: Updated Author
                 isbn:
                   type: string
-                  example: Updated ISBN
+                  example: 978-0-452-28423-4
                 categoryId:
                   type: integer
-                  example: Updated Category ID
+                  example: 1
       responses:
         '200':
           description: Book updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Book not found
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
     delete:
       summary: Delete a book by ID
       tags:
@@ -303,35 +487,38 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
-        '200':
+        '204':
           description: Book deleted successfully
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Book not found
+          $ref: '#/components/responses/NotFound'
+
   /api/categories:
     get:
-      summary: Get a list of all categories
+      summary: Get all categories
       tags:
         - Categories
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: A list of categories
+          description: List of all categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
+
     post:
-      summary: Add a new category
+      summary: Create a new category
       tags:
         - Categories
       security:
@@ -347,16 +534,21 @@ paths:
               properties:
                 name:
                   type: string
-                  example: Fiction
+                  example: Mystery
       responses:
         '201':
-          description: Category added successfully
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
         '409':
-          description: Category name already exists
+          $ref: '#/components/responses/Conflict'
+
   /api/categories/{id}:
     get:
       summary: Get a category by ID
@@ -365,19 +557,19 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '200':
-          description: Category details
+          description: Category found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '404':
-          description: Category not found
+          $ref: '#/components/responses/NotFound'
+
     put:
       summary: Update a category by ID
       tags:
@@ -385,31 +577,35 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - name
               properties:
                 name:
                   type: string
-                  example: Updated Category Name
+                  example: Updated Category
       responses:
         '200':
           description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access 
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Category not found
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
     delete:
       summary: Delete a category by ID
       tags:
@@ -417,35 +613,38 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '204':
           description: Category deleted successfully
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Category not found
+          $ref: '#/components/responses/NotFound'
+
   /api/loans:
     get:
-      summary: Get a list of all loans
+      summary: Get all loans
       tags:
         - Loans
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: A list of loans
+          description: List of all loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only librarians or admins can access
+          $ref: '#/components/responses/Forbidden'
+
   /api/loans/borrow:
     post:
       summary: Borrow a book
@@ -468,12 +667,17 @@ paths:
       responses:
         '201':
           description: Book borrowed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
         '400':
-          description: Book is already on loan
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden, only members and above can access
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/loans/{id}:
     get:
       summary: Get a loan by ID
@@ -482,43 +686,39 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '200':
-          description: Loan details
+          description: Loan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only admins and librarians can access
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Loan not found
+          $ref: '#/components/responses/NotFound'
+
     delete:
-      summary: Delete a loan by ID (admin only)
+      summary: Delete a loan by ID
       tags:
         - Loans
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
-        '200':
+        '204':
           description: Loan deleted successfully
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only admins can access
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Loan not found      
+          $ref: '#/components/responses/NotFound'
+
   /api/loans/{id}/return:
     post:
       summary: Return a borrowed book
@@ -527,18 +727,19 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          example: 1
+        - $ref: '#/components/parameters/ResourceId'
       responses:
         '200':
           description: Book returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
         '400':
-          description: Invalid loan ID or book is not currently on loan
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden, only members and above can access
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
