@@ -1,0 +1,543 @@
+openapi: 3.0.3
+
+info:
+  title: Library Management API
+  description: API for the final project
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /api/auth/signup:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: Mark Smitherson
+                email:
+                  type: string
+                  example: MSmith@hotmail.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        '201':
+          description: User created successfully
+        '400':
+          description: Name, email, and password are required
+        '409':
+          description: Email already in use
+  /api/auth/login:
+    post:
+      summary: Authenticate a user and return a JWT
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: MSmith@hotmail.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        '200':
+          description: Login successful, returns JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials
+  /api/users:
+    get:
+      summary: Get a list of all users
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of users
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only admins can access
+  /api/users/{id}:
+    get:
+      summary: Get a user by ID
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User details
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only owners or admins can access 
+        '404':
+          description: User not found
+    put:
+      summary: Update a user by ID
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Name
+                email:
+                  type: string
+                  example: Updated Email
+                password:
+                  type: string
+                  example: Updated Password
+                role:
+                  type: string
+                  example: Updated Role
+      responses:
+        '200':
+          description: User updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only owners or admins can access 
+        '404':
+          description: User not found
+    delete:
+      summary: Delete a user by ID
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access 
+        '404':
+          description: User not found
+  /api/books:
+    get:
+      summary: Get a list of all books
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of books
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add a new book
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - author
+                - isbn
+                - categoryId
+              properties:
+                title:
+                  type: string
+                  example: The Great Gatsby
+                author:
+                  type: string
+                  example: F. Scott Fitzgerald
+                isbn:
+                  type: string
+                  example: 978-0743273565
+                categoryId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Book added successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+        '409':
+          description: ISBN already exists
+  /api/books/{id}:
+    get:
+      summary: Get a book by ID
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Book details
+        '401':
+          description: Unauthorized
+        '404':
+          description: Book not found
+    put:
+      summary: Update a book by ID
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Updated Title
+                author:
+                  type: string
+                  example: Updated Author
+                isbn:
+                  type: string
+                  example: Updated ISBN
+                categoryId:
+                  type: integer
+                  example: Updated Category ID
+      responses:
+        '200':
+          description: Book updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+        '404':
+          description: Book not found
+    delete:
+      summary: Delete a book by ID
+      tags:
+        - Books
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Book deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+        '404':
+          description: Book not found
+  /api/categories:
+    get:
+      summary: Get a list of all categories
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of categories
+        '401':
+          description: Unauthorized
+    post:
+      summary: Add a new category
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: Fiction
+      responses:
+        '201':
+          description: Category added successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+        '409':
+          description: Category name already exists
+  /api/categories/{id}:
+    get:
+      summary: Get a category by ID
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Category details
+        '401':
+          description: Unauthorized
+        '404':
+          description: Category not found
+    put:
+      summary: Update a category by ID
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Category Name
+      responses:
+        '200':
+          description: Category updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access 
+        '404':
+          description: Category not found
+    delete:
+      summary: Delete a category by ID
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204':
+          description: Category deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+        '404':
+          description: Category not found
+  /api/loans:
+    get:
+      summary: Get a list of all loans
+      tags:
+        - Loans
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of loans
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only librarians or admins can access
+  /api/loans/borrow:
+    post:
+      summary: Borrow a book
+      tags:
+        - Loans
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bookId
+              properties:
+                bookId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Book borrowed successfully
+        '400':
+          description: Book is already on loan
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only members and above can access
+  /api/loans/{id}:
+    get:
+      summary: Get a loan by ID
+      tags:
+        - Loans
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Loan details
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only admins and librarians can access
+        '404':
+          description: Loan not found
+    delete:
+      summary: Delete a loan by ID (admin only)
+      tags:
+        - Loans
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Loan deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only admins can access
+        '404':
+          description: Loan not found      
+  /api/loans/{id}/return:
+    post:
+      summary: Return a borrowed book
+      tags:
+        - Loans
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Book returned successfully
+        '400':
+          description: Invalid loan ID or book is not currently on loan
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden, only members and above can access
