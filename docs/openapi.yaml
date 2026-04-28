@@ -114,7 +114,7 @@ components:
       properties:
         email:
           type: string
-          example: admin@library.com
+          example: member@library.com
         password:
           type: string
           example: Password123!
@@ -135,9 +135,6 @@ components:
         password:
           type: string
           example: Password123!
-        role:
-          type: string
-          example: member
 
   responses:
     Unauthorized:
